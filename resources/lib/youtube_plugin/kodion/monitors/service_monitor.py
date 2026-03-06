@@ -23,8 +23,12 @@ from ..constants import (
     CONTAINER_FOCUS,
     CONTAINER_ID,
     CONTAINER_POSITION,
+    FAIL_FLAG,
     FILE_READ,
     FILE_WRITE,
+    GLOBAL_GET,
+    GLOBAL_POP,
+    GLOBAL_SET,
     LOAD_STREAM_INFO,
     MARK_AS_LABEL,
     PATHS,
@@ -81,6 +85,13 @@ class ServiceMonitor(xbmc.Monitor):
             '__video_id': None,
             '__expire': None,
             '__repr_data': {},
+        }
+
+        self.plugin_data = {
+            CHECK_SETTINGS: None,
+            PLAY_CANCELLED: None,
+            PLAY_FORCED: None,
+            PLAYER_VIDEO_ID: None,
         }
 
         self.onSettingsChanged(force=True)
@@ -158,7 +169,8 @@ class ServiceMonitor(xbmc.Monitor):
                                           'Params: {params}'),
                                          path=path,
                                          params=params)
-                        context.get_ui().set_property(PLAY_FORCED)
+                        self.plugin_data[PLAY_CANCELLED] = False
+                        self.plugin_data[PLAY_FORCED] = True
                     elif params.get(ACTION) == 'list':
                         playlist_player.stop()
                         playlist_player.clear()
@@ -167,7 +179,8 @@ class ServiceMonitor(xbmc.Monitor):
                                           'Params: {params}'),
                                          path=path,
                                          params=params)
-                        context.get_ui().set_property(PLAY_CANCELLED)
+                        self.plugin_data[PLAY_CANCELLED] = True
+                        self.plugin_data[PLAY_FORCED] = False
 
             return
 
@@ -197,6 +210,20 @@ class ServiceMonitor(xbmc.Monitor):
                     response = bool(self.httpd)
                 if self.httpd_sleep_allowed:
                     self.httpd_sleep_allowed = None
+
+            elif target == GLOBAL_SET:
+                key = data.get('key')
+                if key:
+                    self.plugin_data[key] = data.get('value')
+                return
+
+            elif target == GLOBAL_GET:
+                response = self.plugin_data.get(data.get('key'))
+
+            elif target == GLOBAL_POP:
+                key = data.get('key')
+                response = self.plugin_data.get(key)
+                self.plugin_data[key] = None
 
             elif target == CHECK_SETTINGS:
                 state = data.get('state')
@@ -284,7 +311,7 @@ class ServiceMonitor(xbmc.Monitor):
                                 )
                                 response = True
                         except (IOError, OSError):
-                            response = False
+                            response = FAIL_FLAG
                     else:
                         with write_access:
                             content = self._context.get_ui().pop_property(
@@ -300,7 +327,7 @@ class ServiceMonitor(xbmc.Monitor):
                                         file.write(content)
                                     response = True
                                 except (IOError, OSError):
-                                    response = False
+                                    response = FAIL_FLAG
                                 finally:
                                     read_access.set()
 
@@ -334,10 +361,9 @@ class ServiceMonitor(xbmc.Monitor):
                 return
 
             if data.get('play_data', {}).get('play_count'):
-                self._context.get_ui().set_property(
-                    PLAYER_VIDEO_ID,
-                    data.get(VIDEO_ID),
-                )
+                self.plugin_data[PLAYER_VIDEO_ID] = data.get(VIDEO_ID)
+            else:
+                self.plugin_data[PLAYER_VIDEO_ID] = None
 
         elif event == SYNC_LISTITEM:
             video_ids = json.loads(data) if data else None
@@ -419,7 +445,7 @@ class ServiceMonitor(xbmc.Monitor):
             self.log.stack_info = False
             self.log.verbose_logging = False
 
-        context.get_ui().set_property(CHECK_SETTINGS)
+        self.plugin_data[CHECK_SETTINGS] = True
         self.refresh_container()
 
         httpd_started = bool(self.httpd)
