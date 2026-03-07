@@ -71,10 +71,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git reset --hard ${{ github.sha }}
-          git checkout .
-          git fetch origin nexus-unofficial
-          git -c user.email="\<\>" -c user.name="make-release" merge -X theirs --allow-unrelated-histories origin/nexus-unofficial
           git clean -fdx
           mv .git ..
           rm -rf .??*
@@ -130,10 +126,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git reset --hard ${{ github.sha }}
-          git checkout .
-          git fetch origin nexus-unofficial
-          git -c user.email="\<\>" -c user.name="make-release" merge -X theirs --allow-unrelated-histories origin/nexus-unofficial
           git clean -fdx
           mv .git ..
           rm -rf .??*
