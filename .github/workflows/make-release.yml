@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
-      - '*-dev'
+      - "v*"
+      - "*-dev"
 
 jobs:
   release:
@@ -53,7 +53,7 @@ jobs:
         run: |
           mv .git ..
           rm -rf .??*
-          rm *.md
+          rm -f *.md
           news=$(awk '/^## /{rel_num++} {if(rel_num==2){exit} if(rel_num==1){print}}' changelog.txt | sed -E 's/ ?#[[:digit:]]+[., ]?//g;s/\r//')
           version=$(xmlstarlet sel -t -v 'string(/addon/@version)' addon.xml)
           xmlstarlet ed -L -P \
@@ -71,14 +71,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git reset --hard ${{ github.sha }}
           git checkout .
-          git fetch origin nexus-unofficial
-          git -c user.email="\<\>" -c user.name="make-release" merge -X theirs --allow-unrelated-histories origin/nexus-unofficial
           git clean -fdx
           mv .git ..
           rm -rf .??*
-          rm *.md
+          rm -f *.md
           news=$(awk '/^## /{rel_num++} {if(rel_num==2){exit} if(rel_num==1){print}}' changelog.txt | sed -E 's/ ?#[[:digit:]]+[., ]?//g;s/\r//')
           version=$(xmlstarlet sel -t -v 'string(/addon/@version)' addon.xml)
           version="${version}+unofficial.1"
@@ -102,7 +99,7 @@ jobs:
           git clean -fdx
           mv .git ..
           rm -rf .??*
-          rm *.md
+          rm -f *.md
           news=$(awk '/^## /{rel_num++} {if(rel_num==2){exit} if(rel_num==1){print}}' changelog.txt | sed -E 's/ ?#[[:digit:]]+[., ]?//g;s/\r//')
           version=$(xmlstarlet sel -t -v 'string(/addon/@version)' addon.xml)
           version="${version}+leia.1"
@@ -130,14 +127,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git reset --hard ${{ github.sha }}
           git checkout .
-          git fetch origin nexus-unofficial
-          git -c user.email="\<\>" -c user.name="make-release" merge -X theirs --allow-unrelated-histories origin/nexus-unofficial
           git clean -fdx
           mv .git ..
           rm -rf .??*
-          rm *.md
+          rm -f *.md
           news=$(awk '/^## /{rel_num++} {if(rel_num==2){exit} if(rel_num==1){print}}' changelog.txt | sed -E 's/ ?#[[:digit:]]+[., ]?//g;s/\r//')
           version=$(xmlstarlet sel -t -v 'string(/addon/@version)' addon.xml)
           version="${version}+leia.unofficial.1"
