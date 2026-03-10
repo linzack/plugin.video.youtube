@@ -269,7 +269,7 @@ class RequestHandler(BaseHTTPRequestHandler, object):
 
     # noinspection PyPep8Naming
     def do_GET(self):
-        allowed, path = self.connection_allowed('GET')
+        allowed, path_parts = self.connection_allowed('GET')
         if not allowed:
             self.send_error(403)
             return
@@ -282,7 +282,8 @@ class RequestHandler(BaseHTTPRequestHandler, object):
 
         empty = [None]
 
-        if path['path'] == PATHS.IP:
+        path = path_parts['path']
+        if path == PATHS.IP:
             client_json = json_dumps({'ip': self.client_address[0]})
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')
@@ -291,14 +292,14 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             self.end_headers()
             self.wfile.write(client_json.encode('utf-8'))
 
-        elif path['path'].startswith(PATHS.MPD):
-            file_name = path['params'].get('file', empty)[0]
+        elif path.startswith(PATHS.MPD):
+            file_name = path_parts['params'].get('file', empty)[0]
             if file_name:
                 file_path = os.path.join(self.BASE_PATH, file_name)
             else:
                 self.send_error(
                     code=400,
-                    message='No File Requested: %r' % path['log_uri'],
+                    message='No File Requested: %r' % path_parts['log_uri'],
                 )
                 return
 
@@ -331,12 +332,12 @@ class RequestHandler(BaseHTTPRequestHandler, object):
                 self.send_error(
                     code=404,
                     message='File Not Found: %r -> %r' % (
-                        path['log_uri'],
+                        path_parts['log_uri'],
                         file_path,
                     )
                 )
 
-        elif api_config_enabled and path['path'] == PATHS.API:
+        elif api_config_enabled and path == PATHS.API:
             html = self.api_config_page()
             html = html.encode('utf-8')
 
@@ -348,11 +349,11 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             for chunk in self._get_chunks(html):
                 self.wfile.write(chunk)
 
-        elif api_config_enabled and path['path'].startswith(PATHS.API_SUBMIT):
+        elif api_config_enabled and path.startswith(PATHS.API_SUBMIT):
             xbmc.executebuiltin('Dialog.Close(addonsettings,true)')
 
-            query = path['query']
-            params = path['params']
+            query = path_parts['query']
+            params = path_parts['params']
             updated = []
 
             api_key = params.get('api_key', empty)[0]
@@ -406,11 +407,11 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             for chunk in self._get_chunks(html):
                 self.wfile.write(chunk)
 
-        elif path['path'] == PATHS.PING:
+        elif path == PATHS.PING:
             self.send_error(204)
 
-        elif path['path'].startswith(PATHS.REDIRECT):
-            url = path['params'].get('url', empty)[0]
+        elif path.startswith(PATHS.REDIRECT):
+            url = path_parts['params'].get('url', empty)[0]
             if url:
                 wait(1)
                 self.send_response(301)
@@ -420,8 +421,8 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             else:
                 self.send_error(501)
 
-        elif path['path'].startswith(PATHS.STREAM_PROXY):
-            params = path['params']
+        elif path.startswith(PATHS.STREAM_PROXY):
+            params = path_parts['params']
             original_path = params.pop('__path', empty)[0] or '/videoplayback'
             request_servers = params.pop('__host', empty)
             stream_id = params.pop('__id', empty)
@@ -729,7 +730,7 @@ class RequestHandler(BaseHTTPRequestHandler, object):
 
     # noinspection PyPep8Naming
     def do_HEAD(self):
-        allowed, path = self.connection_allowed('HEAD')
+        allowed, path_parts = self.connection_allowed('HEAD')
         if not allowed:
             self.send_error(403)
             return
@@ -738,14 +739,15 @@ class RequestHandler(BaseHTTPRequestHandler, object):
 
         empty = [None]
 
-        if path['path'].startswith(PATHS.MPD):
-            file_name = path['params'].get('file', empty)[0]
+        path = path_parts['path']
+        if path.startswith(PATHS.MPD):
+            file_name = path_parts['params'].get('file', empty)[0]
             if file_name:
                 file_path = os.path.join(self.BASE_PATH, file_name)
             else:
                 self.send_error(
                     code=400,
-                    message='No File Requested: %r' % path['log_uri'],
+                    message='No File Requested: %r' % path_parts['log_uri'],
                 )
                 return
 
@@ -770,12 +772,12 @@ class RequestHandler(BaseHTTPRequestHandler, object):
                 self.send_error(
                     code=404,
                     message='File Not Found: %r -> %r' % (
-                        path['log_uri'],
+                        path_parts['log_uri'],
                         file_path,
                     )
                 )
 
-        elif path['path'].startswith(PATHS.REDIRECT):
+        elif path.startswith(PATHS.REDIRECT):
             self.send_error(404)
 
         else:
@@ -783,12 +785,13 @@ class RequestHandler(BaseHTTPRequestHandler, object):
 
     # noinspection PyPep8Naming
     def do_POST(self):
-        allowed, path = self.connection_allowed('POST')
+        allowed, path_parts = self.connection_allowed('POST')
         if not allowed:
             self.send_error(403)
             return
 
-        if path['path'].startswith(PATHS.DRM):
+        path = path_parts['path']
+        if path.startswith(PATHS.DRM):
             ui = self._context.get_ui()
 
             lic_url = ui.get_property(LICENSE_URL)

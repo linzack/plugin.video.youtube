@@ -825,8 +825,8 @@ class XbmcContext(AbstractContext):
 
         return new_context
 
-    def execute(self,
-                command,
+    @staticmethod
+    def execute(command,
                 wait=False,
                 wait_for=None,
                 wait_for_set=True,
@@ -838,7 +838,6 @@ class XbmcContext(AbstractContext):
             _execute(command, wait)
             return
 
-        ui = self.get_ui()
         wait_for_abort = xbmc.Monitor().waitForAbort
 
         if block_ui is False:
@@ -853,12 +852,12 @@ class XbmcContext(AbstractContext):
             while not wait_for(**wait_for_kwargs) and not wait_for_abort(delay):
                 pass
         elif wait_for_set:
-            ui.clear_property(wait_for)
-            pop_property = ui.pop_property
+            XbmcContextUI.clear_property(wait_for)
+            pop_property = XbmcContextUI.pop_property
             while not pop_property(wait_for) and not wait_for_abort(1):
                 pass
         else:
-            get_property = ui.get_property
+            get_property = XbmcContextUI.get_property
             while get_property(wait_for) and not wait_for_abort(1):
                 pass
 
@@ -986,8 +985,9 @@ class XbmcContext(AbstractContext):
         except RuntimeError:
             return False
 
-    def abort_requested(self):
-        return self.get_ui().get_property(
+    @staticmethod
+    def abort_requested():
+        return XbmcContextUI.get_property(
             ABORT_FLAG, stacklevel=3, as_bool=True
         )
 
@@ -1019,7 +1019,8 @@ class XbmcContext(AbstractContext):
             except AttributeError:
                 pass
 
-    def ipc_exec(self,
+    @classmethod
+    def ipc_exec(cls,
                  target,
                  timeout=None,
                  payload=None,
@@ -1030,13 +1031,13 @@ class XbmcContext(AbstractContext):
             XbmcContextUI.set_property(SERVICE_RUNNING_FLAG, BUSY_FLAG)
             if raise_exc:
                 raise RuntimeError(msg)
-            self.log.warning_trace(msg, stacklevel=stacklevel)
+            cls.log.warning_trace(msg, stacklevel=stacklevel)
             return None
 
         data = {'target': target, 'response_required': bool(timeout)}
         if payload:
             data.update(payload)
-        self.send_notification(SERVICE_IPC, data)
+        cls.send_notification(SERVICE_IPC, data)
 
         if not timeout:
             return None
@@ -1054,7 +1055,7 @@ class XbmcContext(AbstractContext):
                 log_level = logging.DEBUG
                 log_value = value
                 stack_info = False
-            self.log.log(
+            cls.log.log(
                 level=log_level,
                 msg='Service IPC <{target}({payload})>:'
                     ' {value} (in {time_ms:.2f}ms)',
@@ -1067,7 +1068,7 @@ class XbmcContext(AbstractContext):
             )
         else:
             value = None
-            self.log.error_trace(
+            cls.log.error_trace(
                 'Service IPC <{target}({payload})>:'
                 ' TIMED OUT (in {time_s:.2f}s)',
                 target=target,

@@ -417,11 +417,13 @@ class AbstractContext(object):
                 history_replace = False
                 window_name = window.setdefault('name', 'Videos')
                 if window.setdefault('replace', False):
-                    method = 'ReplaceWindow(%s,' % window_name
-                    window_return = window.setdefault('return', False)
+                    method = 'ReplaceWindow('
+                    window_return = False
                 else:
-                    method = 'ActivateWindow(%s,' % window_name
-                    window_return = window.setdefault('return', True)
+                    method = 'ActivateWindow('
+                    window_return = True
+                window_return = window.setdefault('return', window_return)
+                method = window_name.join((method, ','))
             return ''.join((
                 command,
                 method,
@@ -715,8 +717,8 @@ class AbstractContext(object):
     def clone(self, new_path=None, new_params=None):
         raise NotImplementedError()
 
-    def execute(self,
-                command,
+    @staticmethod
+    def execute(command,
                 wait=False,
                 wait_for=None,
                 wait_for_set=True,
@@ -725,6 +727,10 @@ class AbstractContext(object):
 
     @staticmethod
     def sleep(timeout=None):
+        raise NotImplementedError()
+
+    @staticmethod
+    def abort_requested():
         raise NotImplementedError()
 
     def tear_down(self):
