@@ -20,6 +20,7 @@ from ...kodion.constants import (
     PATHS,
     PLAYLIST_ID,
     PLAYLIST_ITEM_ID,
+    REFRESH_CONTAINER,
     TITLE,
     URI,
     VIDEO_ID,
@@ -114,14 +115,14 @@ def _process_remove_video(provider,
 
     if not playlist_id:
         if confirmed:
-            return False
+            return False, {provider.FORCE_RETURN: True}
         raise KodionException('Playlist/Remove: missing playlist ID')
     elif playlist_id == 'watch_later':
         playlist_id = context.get_access_manager().get_watch_later_id()
     elif playlist_id.lower() == 'hl':
         logging.debug('Playlist/Remove: failed for playlist {playlist_id!r}'
                       .format(playlist_id=playlist_id))
-        return False
+        return False, {provider.FORCE_RETURN: True}
 
     localize = context.localize
     if confirmed or ui.on_remove_content(video_name):
@@ -136,7 +137,7 @@ def _process_remove_video(provider,
                 time_ms=2500,
                 audible=False,
             )
-            return False
+            return False, {provider.FORCE_RETURN: True}
 
         if not confirmed:
             ui.show_notification(
@@ -146,26 +147,31 @@ def _process_remove_video(provider,
             )
 
         if not container_uri:
-            return True
+            return False, {provider.FORCE_RETURN: True}
 
         if params.get(KEYMAP) or not params.get(CONTEXT_MENU):
             ui.set_focus_next_item()
 
         path, params = context.parse_uri(container_uri)
         if path.rstrip('/').endswith('/'.join((PATHS.PLAYLIST, playlist_id))):
-            if 'refresh' not in params:
-                params['refresh'] = True
+            if context.get_handle() == -1:
+                context.send_notification(
+                    REFRESH_CONTAINER,
+                    {'target': container_uri},
+                )
+                options = None
+            else:
+                options = {
+                    provider.FORCE_REFRESH: True,
+                }
         else:
-            path = params.pop('reload_path', False if confirmed else None)
+            options = {
+                provider.FALLBACK: params.pop('reload_path', False),
+                provider.FORCE_RETURN: True,
+            }
 
-        if path is not False:
-            provider.reroute(
-                context,
-                path=path,
-                params=params,
-            )
-        return True
-    return False
+        return True, options
+    return False, {provider.FORCE_RETURN: True}
 
 
 def _process_remove_playlist(provider, context):
@@ -193,7 +199,7 @@ def _process_remove_playlist(provider, context):
                 time_ms=2500,
                 audible=False,
             )
-            return False, None
+            return False, {provider.FORCE_RETURN: True}
 
         ui.show_notification(
             message=localize('removed.name.x', playlist_name),
@@ -204,9 +210,16 @@ def _process_remove_playlist(provider, context):
         if channel_id:
             data_cache = context.get_data_cache()
             data_cache.del_item(channel_id)
-            return True, {provider.FORCE_REFRESH: True}
+            return (
+                True,
+                {
+                    provider.FORCE_REFRESH: context.is_plugin_folder(
+                        PATHS.MY_PLAYLISTS,
+                    ),
+                },
+            )
 
-    return False, None
+    return False, {provider.FORCE_RETURN: True}
 
 
 def _process_select_playlist(provider, context):
@@ -332,6 +345,7 @@ def _process_select_playlist(provider, context):
             new_context = context.clone(new_params=new_params)
             _process_add_video(provider, new_context)
         break
+    return True, {provider.FORCE_RETURN: True}
 
 
 def _process_rename_playlist(provider, context):
@@ -351,7 +365,7 @@ def _process_rename_playlist(provider, context):
         default=params.get('item_name', li_playlist_name),
     )
     if not result or not text:
-        return False, None
+        return False, {provider.FORCE_RETURN: True}
 
     success = provider.get_client(context).rename_playlist(
         playlist_id=playlist_id, new_title=text,
@@ -362,7 +376,7 @@ def _process_rename_playlist(provider, context):
             time_ms=2500,
             audible=False,
         )
-        return False, None
+        return False, {provider.FORCE_RETURN: True}
 
     ui.show_notification(
         message=localize('succeeded'),
@@ -372,10 +386,17 @@ def _process_rename_playlist(provider, context):
 
     data_cache = context.get_data_cache()
     data_cache.del_item(playlist_id)
-    return True, {provider.FORCE_REFRESH: True}
+    return (
+        True,
+        {
+            provider.FORCE_REFRESH: context.is_plugin_folder(
+                PATHS.MY_PLAYLISTS,
+            ),
+        },
+    )
 
 
-def _playlist_id_change(context, playlist, command):
+def _playlist_id_change(provider, context, playlist, command):
     ui = context.get_ui()
     li_playlist_id = ui.get_listitem_property(PLAYLIST_ID)
     li_playlist_name = ui.get_listitem_info(TITLE)
@@ -400,10 +421,17 @@ def _playlist_id_change(context, playlist, command):
             playlist_id = None
         if playlist == 'watch_later':
             context.get_access_manager().set_watch_later_id(playlist_id)
-        else:
+        elif playlist == 'history':
             context.get_access_manager().set_watch_history_id(playlist_id)
-        return True
-    return False
+        return (
+            True,
+            {
+                provider.FORCE_REFRESH: context.is_plugin_folder(
+                    PATHS.MY_PLAYLISTS,
+                ),
+            },
+        )
+    return False, {provider.FORCE_RETURN: True}
 
 
 def _process_rate_playlist(provider,
@@ -451,25 +479,23 @@ def _process_rate_playlist(provider,
         )
 
         if not container_uri:
-            return True
+            return False, {provider.FORCE_RETURN: True}
 
         if params.get(KEYMAP) or not params.get(CONTEXT_MENU):
             ui.set_focus_next_item()
 
         path, params = context.parse_uri(container_uri)
         if path.startswith(PATHS.SAVED_PLAYLISTS):
-            if 'refresh' not in params:
-                params['refresh'] = True
+            options = {
+                provider.FORCE_REFRESH: True,
+            }
         else:
-            path = params.pop('reload_path', False if confirmed else None)
+            options = {
+                provider.FALLBACK: params.pop('reload_path', False),
+                provider.FORCE_RETURN: True,
+            }
 
-        if path is not False:
-            provider.reroute(
-                context,
-                path=path,
-                params=params,
-            )
-        return True
+        return True, options
 
     elif success is False:
         ui.show_notification(
@@ -479,9 +505,9 @@ def _process_rate_playlist(provider,
             time_ms=2500,
             audible=False,
         )
-        return False
+        return False, {provider.FORCE_RETURN: True}
 
-    return None
+    return False, {provider.FORCE_RETURN: True}
 
 
 def process(provider,
@@ -518,7 +544,7 @@ def process(provider,
 
     elif category in {'watch_later', 'history'}:
         if command in {'assign', 'unassign'}:
-            return _playlist_id_change(context, category, command)
+            return _playlist_id_change(provider, context, category, command)
 
     raise KodionException('Unknown playlist category {0!r} or command {1!r}'
                           .format(category, command))

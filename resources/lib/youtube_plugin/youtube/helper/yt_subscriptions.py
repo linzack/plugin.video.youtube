@@ -12,7 +12,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 from ..helper import v3
 from ...kodion import KodionException
-from ...kodion.constants import CHANNEL_ID, CONTENT, SUBSCRIPTION_ID
+from ...kodion.constants import CHANNEL_ID, CONTENT, PATHS, SUBSCRIPTION_ID
 from ...kodion.items import UriItem
 
 
@@ -87,7 +87,14 @@ def _process_remove(provider, context, client):
         time_ms=2500,
         audible=False,
     )
-    return True, {provider.FORCE_REFRESH: True}
+    return (
+        True,
+        {
+            provider.FORCE_REFRESH: context.is_plugin_folder(
+                PATHS.SUBSCRIPTIONS,
+            ),
+        },
+    )
 
 
 def process(provider, context, re_match):
