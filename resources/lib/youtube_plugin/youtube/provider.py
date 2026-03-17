@@ -118,26 +118,20 @@ class Provider(AbstractProvider):
         yt_setup_wizard.process_pre_run(context)
 
     def reset_client(self, **kwargs):
-        if self._client:
+        client = self._client
+        if client:
             kwargs.setdefault(
                 'configs',
                 {
-                    'dev': {},
-                    'user': {},
-                    'tv': {},
-                    'vr': {},
-                }
+                    client_type: {}
+                    for client_type in client.CLIENT_TYPES
+                },
             )
             kwargs.setdefault(
                 'access_tokens',
-                {
-                    'dev': None,
-                    'user': None,
-                    'tv': None,
-                    'vr': None,
-                }
+                dict.fromkeys(client.CLIENT_TYPES, None),
             )
-            self._client.reinit(**kwargs)
+            client.reinit(**kwargs)
 
     def get_client(self, context, refresh=False):
         access_manager = context.get_access_manager()

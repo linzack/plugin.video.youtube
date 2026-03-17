@@ -3187,21 +3187,8 @@ class YouTubeDataClient(YouTubeLoginClient):
         else:
             abort = False
 
-        client_data['_access_tokens'] = access_tokens = {}
-        client_data['_api_keys'] = api_keys = {}
-        for config_type, config in self._configs.items():
-            if not config:
-                continue
-
-            key = config.get('key')
-            if key:
-                api_keys[config_type] = key
-
-            if not config.get('token-allowed', True):
-                continue
-            access_token = self._access_tokens.get(config_type)
-            if access_token:
-                access_tokens[config_type] = access_token
+        client_data['_access_tokens'] = self._access_tokens
+        client_data['_api_keys'] = self._api_keys
 
         _client = self.build_client(client, client_data)
         if _client:
