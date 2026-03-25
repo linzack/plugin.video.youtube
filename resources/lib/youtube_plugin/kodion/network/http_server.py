@@ -39,6 +39,7 @@ from ..constants import (
     LICENSE_URL,
     LOAD_STREAM_INFO,
     PATHS,
+    SYNC_API_KEYS,
     TEMP_PATH,
     VIDEO_ID,
 )
@@ -390,6 +391,7 @@ class RequestHandler(BaseHTTPRequestHandler, object):
                 enabled = localize('api.personal.disabled')
 
             if updated:
+                context.send_notification(SYNC_API_KEYS)
                 # Successfully updated
                 updated = localize('api.config.updated', ', '.join(updated))
             else:
