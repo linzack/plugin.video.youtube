@@ -360,11 +360,6 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             api_key = params.get('api_key', empty)[0]
             api_id = params.get('api_id', empty)[0]
             api_secret = params.get('api_secret', empty)[0]
-            # Bookmark this page
-            if api_key and api_id and api_secret:
-                footer = localize('api.config.bookmark')
-            else:
-                footer = ''
 
             if re.search(r'api_key=(?:&|$)', query):
                 api_key = ''
@@ -398,7 +393,7 @@ class RequestHandler(BaseHTTPRequestHandler, object):
                 # No changes, not updated
                 updated = localize('api.config.not_updated')
 
-            html = self.api_submit_page(updated, enabled, footer)
+            html = self.api_submit_page(updated, enabled)
             html = html.encode('utf-8')
 
             self.send_response(200)
@@ -915,12 +910,14 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             api_key_value=api_key,
             api_secret_value=api_secret,
             submit=localize('api.config.save'),
+            action_url=PATHS.API_SUBMIT,
             header=localize('api.config'),
+            footer=localize('api.config.bookmark'),
         )
         return html
 
     @classmethod
-    def api_submit_page(cls, updated_keys, enabled, footer):
+    def api_submit_page(cls, updated_keys, enabled):
         localize = cls._context.localize
         html = Pages.api_submit.get('html')
         css = Pages.api_submit.get('css')
@@ -929,7 +926,6 @@ class RequestHandler(BaseHTTPRequestHandler, object):
             title=localize('api.config'),
             updated=updated_keys,
             enabled=enabled,
-            footer=footer,
             header=localize('api.config'),
         )
         return html
@@ -943,31 +939,34 @@ class Pages(object):
               <head>
                 <link rel="icon" href="data:;base64,=">
                 <meta charset="utf-8">
-                <title>{{title}}</title>
-                <style>{{css}}</style>
+                <title>{title}</title>
+                <style>{css}</style>
               </head>
               <body>
                 <div class="center">
-                  <h5>{{header}}</h5>
-                  <form action="{action_url}" class="config_form">
+                  <h5>{header}</h5>
+                  <form action="{action_url}" class="config_form" autocomplete="off">
                     <label for="api_key">
-                      <span>{{api_key_head}}:</span>
-                      <input type="text" name="api_key" value="{{api_key_value}}" size="50"/>
+                      <span>{api_key_head}:</span>
+                      <input type="text" name="api_key" value="{api_key_value}" size="50"/>
                     </label>
                     <label for="api_id">
-                      <span>{{api_id_head}}:</span>
-                      <input type="text" name="api_id" value="{{api_id_value}}" size="50"/>
+                      <span>{api_id_head}:</span>
+                      <input type="text" name="api_id" value="{api_id_value}" size="50"/>
                     </label>
                     <label for="api_secret">
-                      <span>{{api_secret_head}}:</span>
-                      <input type="text" name="api_secret" value="{{api_secret_value}}" size="50"/>
+                      <span>{api_secret_head}:</span>
+                      <input type="text" name="api_secret" value="{api_secret_value}" size="50"/>
                     </label>
-                    <input type="submit" value="{{submit}}">
+                    <input type="submit" value="{submit}">
                   </form>
+                  <p class="text_center">
+                    <small>{footer}</small>
+                  </p>
                 </div>
               </body>
             </html>
-        '''.format(action_url=PATHS.API_SUBMIT)),
+        '''),
         'css': ''.join('\t\t\t'.expandtabs(2) + line for line in dedent('''
             body {
               background: #141718;
@@ -1040,6 +1039,25 @@ class Pages(object):
             .config_form input[type=button]:hover {
               background: #0f84a5;
             }
+            .text_center {
+              margin: 2em auto auto;
+              width: 600px;
+              padding: 10px;
+              text-align: center;
+            }
+            p {
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 16px;
+              color: #fff;
+              float: left;
+              width: 575px;
+              margin: 0.5em auto;
+            }
+            small {
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 12px;
+              color: #fff;
+            }
         ''').splitlines(True)) + '\t\t'.expandtabs(2)
     }
 
@@ -1059,9 +1077,6 @@ class Pages(object):
                   <div class="content">
                     <p>{updated}</p>
                     <p>{enabled}</p>
-                    <p class="text_center">
-                      <small>{footer}</small>
-                    </p>
                   </div>
                 </div>
               </body>
@@ -1075,12 +1090,6 @@ class Pages(object):
               margin: auto;
               width: 600px;
               padding: 10px;
-            }
-            .text_center {
-              margin: 2em auto auto;
-              width: 600px;
-              padding: 10px;
-              text-align: center;
             }
             .content {
               width: 575px;
@@ -1108,11 +1117,6 @@ class Pages(object):
               float: left;
               width: 575px;
               margin: 0.5em auto;
-            }
-            small {
-              font-family: Arial, Helvetica, sans-serif;
-              font-size: 12px;
-              color: #fff;
             }
         ''').splitlines(True)) + '\t\t'.expandtabs(2)
     }
