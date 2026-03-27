@@ -2577,6 +2577,12 @@ class YouTubePlayerClient(YouTubeDataClient):
                     else:
                         nom_width = 'width_4:3'
 
+                    if (codec.startswith('vp9') 
+                            and compare_height == 1080 
+                            and fps > 30 
+                            and 'no_vp9_1080p60' in stream_features):
+                        continue
+
                     bound = None
                     _disable_hfr_max = disable_hfr_max
                     for quality in qualities:

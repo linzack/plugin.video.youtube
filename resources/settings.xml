@@ -151,6 +151,7 @@
                             <option label="30722">hdr</option>
                             <option label="30724">hfr</option>
                             <option label="30768">no_hfr_max</option>
+                            <option label="30825">no_vp9_1080p60</option>
                             <option label="30771">no_frac_fr_hint</option>
                             <option label="30772">no_fr_hint</option>
                             <option label="30020">3d</option>
